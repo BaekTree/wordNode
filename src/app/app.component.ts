@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Component } from '@angular/core';
 import { Observable } from 'rxjs';
-import { DataModel } from 'src/app/data/data.nodeLink';
+import { DataModel } from 'src/app/data/data.news';
 
 @Component({
   selector: 'app-root',
@@ -13,7 +13,8 @@ export class AppComponent {
 
   constructor(private http: HttpClient) {
     // this.data = this.http.get<DataModel>('./assets/data.json');
-    this.data = this.http.get<DataModel>('./assets/nodeLink.json');
+    // this.data = this.http.get<DataModel>('./assets/nodeLink.json');
+    this.data = this.http.get<DataModel>('./assets/dataset.csv');
 
   }
 }
