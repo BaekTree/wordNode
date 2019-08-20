@@ -13,50 +13,24 @@ import { TF_meta } from './model/TF_meta'
 })
 // class 
 
-// export class BarChartComponent implements OnChanges {
 export class BarChartComponent implements OnInit {
-  // http : HttpClient;
-  //  Array<{name: string, price: number, description: string}>
-
-  // private listFreq_: listFreq = {
-  //   name: "",
-  //   count: 0,
-  //   doc: null
-  // };
-
-  // private TF_meta_obj: TF_meta = {
-  //   name: "",
-  //   idx: 0,
-  //   doc: 0
-  // };
-
-
-
 
   @ViewChild('chart', { static: false })
   private chartContainer: ElementRef;
 
-  // @Input()
-  // data: DataModel[];
-
-
   @Input()
-  // data: DataModel;
   margin = { top: 20, right: 20, bottom: 30, left: 40 };
 
   constructor(private http: HttpClient) { }
   ngOnInit() {
     this.createChart();
   }
-  // ngOnChanges(): void {
-  //   if (!this.data) { return; }
-
-  //   this.createChart();
-  // }
 
   onResize() {
     this.createChart();
   }
+
+  //data mining
 
   Freq(list, result) {
     var TF: { word: string, freq: number }[]
@@ -70,27 +44,14 @@ export class BarChartComponent implements OnInit {
           count++;
         }
         else {
-          // console.log(result);
           TF.push({ word: list[j], freq: count })
-          // this.listFreq_.name = list[j];
-          // this.listFreq_.count = count;
-          // console.log(this.listFreq_);
-          // freqArr.push(this.listFreq_);
-          // this.listFreq_.name = null;
-          // this.listFreq_.count = null;
-          // if(j > 3) break;
           count = 1;
         }
       }
 
-      // console.log(TF);
-
       TF.sort(function (a, b) {
         return +b.freq - +a.freq;
       });
-      // console.log( freqArr );
-      // result.push(freqArr);
-      // console.log(result);
 
     }
     return TF;
@@ -100,98 +61,45 @@ export class BarChartComponent implements OnInit {
     var word_meta: { docN: number, index: number }[] = [];
     var DF_meta: { word: string, freqD: number, doc: { docN: number, index: number }[] }[] = [];
 
-    /**
-     * Typescript Array of Object Lab
-     
-    var word_meta: { docN: number, index: number }[] ;
-    word_meta =[];
-    word_meta.push({docN:9, index: 10});
-    console.log(word_meta);
-    word_meta.push({docN:9, index: 10});
-    console.log(word_meta);
-
-    
-    
-    // var DF_meta = [];
-    var DF_meta: { word: string, freqD: number, doc: { docN: number, index: number }[]}[] = [];
-    DF_meta.push({word:"string",freqD:9, doc:word_meta});
-    console.log(DF_meta[0]);
-
-    DF_meta[0].word = "word";
-    console.log(DF_meta[0].word);
-    */
-    // = new Array<{ word: string, freqD: number, doc: { docN: number, index: number }[] }>();
-    // = [ {word:"a", freqD:0, doc : null} ];
-    // console.log(DF_meta)
-    //     = new Array <{ docN: number, index: number }>() }[]
-    // = [word:"", freqD : 0, doc : { docN : 0, index : 0 } ];
-    // DF_meta[0].word = "word test";
-    // console.log(DF_meta);
-    /**
-     * DF을 반환한다.
-     * DF의 형식:
-     *  [ 
-     *    { word : a, freqD : 10, doc : [ { docN : 10, idx : 5}, { ... }, ... ] },
-     *    ...
-     *  ]
-     * 
-     * 
-     * 
-     */
     if (list.length > 0) {
       var count = 1;
-      // var freqArr = [];
-      // var doc_temp = [];
 
       for (var j = 0; j < list.length - 1; j++) {    //다음 index의 단어와 같은지 확인하니까 -1
         DF_meta.push({ word: null, freqD: null, doc: null });
 
-        // console.log(list[j].word);
-        // console.log(j);
         try {
           if (list[j].word === list[j + 1].word) {
-            // console.log("freq df run in if");
             count++;
             word_meta.push({ docN: list[j].docNum, index: list[j].index });
 
-            // console.log(DF_meta);
           }
           else {
             DF_meta[j].word = list[j].word;
             DF_meta[j].freqD = count;
             DF_meta[j].doc = word_meta;
             count = 1;
-            // console.log(word_meta);
             word_meta = [];
-            // DF_meta[j].doc.push({ docN: list[j].docNum, index: list[j].index });
           }
         } catch (err) {
           console.log("Error " + j);
           console.log(err.message);
-          // console.log(list[j]);
         }
       }
-      // result.push(DF_meta);
 
       DF_meta.sort(function (a, b) {
         return +b.freqD - +a.freqD;
       });
-      // console.log(DF_meta);
-      // result.push(freqArr);
       return DF_meta;
     }
   }
 
   DFify(listDF, arr) {
     var listSort = listDF.sort(function (a, b) { return d3.ascending(a.word, b.word); });
-    // console.log(listSort);
     return this.Freq_DF(listSort);
   }
 
   TFify = function (list, arr) {
     var listSort = list.sort(function (a, b) { return d3.ascending(a, b); });//가나다 수로 정렬
-    // console.log(arr);
-    // console.log(listSort);
     return this.Freq(listSort, arr);
   }
 
@@ -200,90 +108,36 @@ export class BarChartComponent implements OnInit {
 
   private render(data) {
 
-    // d3.csv('https://baektree.github.io/d3/bigkinds_utf.csv').then(data => { //data load
-
     var TF_arr: { word: string, TF: number }[][]
       = new Array<{ word: string, TF: number }[]>();
-    // TF_arr[0].push({word : "a", TF:3});
-    // console.log(TF_arr);
-
-
-    // var arr_name : datatype[][]=[ [val1,val2,val3],[v1,v2,v3] ]
-    /**
-     * TF: 
-     * [{name: word, TF: number},
-     * {name: word, TF: number},
-     * ...]
-     * TF_arr:
-     * [{name: word, TF: number},
-     * {name: word, TF: number},
-     * ...],
-     * [{name: word, TF: number},
-     * {name: word, TF: number},
-     * ...],
-     * ...
-     * 
-     */
 
     var TF_meta: { word: string, docNum: number, index: number }[]
       = new Array<{ word: string, docNum: number, index: number }>();
-      
-      var DF_arr: { word: string, freqD: number, doc: { docN: number, index: number }[] }[] = [];
 
+    var DF_arr: { word: string, freqD: number, doc: { docN: number, index: number }[] }[] = [];
+
+
+
+
+    var TF_IDF_arr: { word: string, TF_IDF: number }[][] = [];
     
-    /**
-     * DF
-     * word: string, DF : number
-     */
-    var IDF_arr: { word: string, IDF: number }[];
-    /**
-     * 
-     */
 
     var listDF = [];
 
     var wordArr = [];
 
-    //typescript transfer
-    //wordArr = data.map(d => d['키워드'])//키워드 column분리
     var targetColumn = d3.csvParse(data, function (d) {
       return {
         키워드: d.키워드
       };
     });
 
-    // console.log(Object.values(pars[0]));
-
-
-    // Object.values(pars[0])
-    // wordArr = pars;
-    // wordArr[0].split(',');
-    // console.log(wordArr[0]);
-
 
     var len = targetColumn.length;  //전체 기사의 수, 키워드 column의 index 수
-    // console.log(len);
-
-    // var find = 0;
     for (var i = 0; i < len; i++) {
-
       var dataValues = Object.values(targetColumn[i]);//remove column head
-      // console.log(par);
-      // console.log ( par[0].split(',') ); 
       wordArr = dataValues[0].split(',');
-      // console.log(wordArr);
-
-
-      // var list = [];
-      // list = d3.csvParseRows(wordArr[i]);    //데이터의 형식을 변환
-
-      // list = Object.values(wordArr);
-      // console.log(list);
-      // console.log(i);
-      // list = list[0];                         //array의 element가 큰 덩어리로 하나
-
       TF_arr[i] = this.TFify(wordArr, TF_arr);
-      // console.log(TF_arr);
 
 
 
@@ -297,54 +151,19 @@ export class BarChartComponent implements OnInit {
         TF_meta.push({ word: word, docNum: docN, index: idx });
       }
 
-      /**
-       * TF_meta:
-       * [
-       *  {word: a, docNum: 7, index: 9},
-       *  {word: b, docNum: 7, index: 10}
-       * ]
-       * 
-       * 
-       */
-
-      // //before df inhencement
-      // DocWordLen = TF_arr[i].length;
-      // for (k = 0; k < DocWordLen; k++) {
-      //   listDF = listDF.concat(TF_arr[i][k].name);
-      // }
     }//for
-    // console.log(TF_arr); 
-    // console.log(TF_meta);
-    
+
     DF_arr = this.DFify(TF_meta, DF_arr);
-    console.log(DF_arr);
+    console.log(DF_arr)
 
 
 
 
-    // for (i = 0; i < DF_arr[0].length; i++) {
-    //   var IDF = (len / DF_arr[0][i].count);
-    //   DF_arr[0][i].IDF_log = Math.log(IDF) / Math.LN10;
-    // }
+    for (i = 0; i < DF_arr.length; i++) {
+      var IDF = (len / DF_arr[i].freqD);
+     
+    }
 
-    // for (var i = 0; i < DF_arr[0].length; i++) {
-    //   for (var j = 0; j < DF_arr[0][i].doc.length; j++) {
-    //     var numD = DF_arr[0][i].doc[j].doc;
-    //     var numI = DF_arr[0][i].doc[j].idx;
-
-    //     TF_arr[numD][numI].idf = DF_arr[0][i].IDF_log;
-    //     TF_arr[numD][numI].tf_idf = TF_arr[numD][numI].count * TF_arr[numD][numI].idf;
-    //   }
-    // }
-
-    // for (i = 0; i < TF_arr.length; i++) {
-    //   TF_arr[i].sort((a, b) => b.tf_idf - a.tf_idf);
-    // }
-    // // console.log("test");
-    // console.log(TF_arr[i]);
-    // data = TF_arr;
-
-    // });
     return data;
   }//render
 
@@ -367,6 +186,7 @@ export class BarChartComponent implements OnInit {
 
   }
 
+  //visualization
 
   private createChart(): void {
     // const svg = d3.select(element).append('svg')
