@@ -1,4 +1,4 @@
-import { OnInit, Component, ElementRef, Input, OnChanges, ViewChild, ViewEncapsulation, HostListener } from '@angular/core';
+import { OnInit, Component, ElementRef, AfterViewInit, Input, OnChanges, ViewChild, HostListener } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import * as d3 from 'd3';
 import { DataModel } from 'src/app/data/data.news';
@@ -7,22 +7,20 @@ import { TF_meta } from './model/TF_meta'
 
 @Component({
   selector: 'app-bar-chart',
-  encapsulation: ViewEncapsulation.None,
   templateUrl: './bar-chart.component.html',
   styleUrls: ['./bar-chart.component.scss']
 })
 // class 
 
-export class BarChartComponent implements OnInit {
+export class BarChartComponent implements AfterViewInit {
 
   @ViewChild('chart', { static: false })
   private chartContainer: ElementRef;
 
-  @Input()
-  margin = { top: 20, right: 20, bottom: 30, left: 40 };
+
 
   constructor(private http: HttpClient) { }
-  ngOnInit() {
+  ngAfterViewInit() {
     this.createChart();
   }
 
@@ -33,24 +31,23 @@ export class BarChartComponent implements OnInit {
   //data mining
 
   Freq(list, result) {
-    var TF: { word: string, freq: number }[]
-      = new Array<{ word: string, freq: number }>();
+    var TF: { word: string, TF: number }[]
+      = new Array<{ word: string, TF: number }>();
 
     if (list.length > 0) {
       var count = 1;
-      var freqArr = [];
       for (var j = 0; j <= list.length - 1; j++) {    //다음 index의 단어와 같은지 확인하니까 -1
         if (list[j] === list[j + 1]) {
           count++;
         }
         else {
-          TF.push({ word: list[j], freq: count })
+          TF.push({ word: list[j], TF: count })
           count = 1;
         }
       }
 
       TF.sort(function (a, b) {
-        return +b.freq - +a.freq;
+        return +b.TF - +a.TF;
       });
 
     }
@@ -63,21 +60,24 @@ export class BarChartComponent implements OnInit {
 
     if (list.length > 0) {
       var count = 1;
-
+      var distinct = 0;
       for (var j = 0; j < list.length - 1; j++) {    //다음 index의 단어와 같은지 확인하니까 -1
-        DF_meta.push({ word: null, freqD: null, doc: null });
+
+        word_meta.push({ docN: list[j].docNum, index: list[j].index });
 
         try {
           if (list[j].word === list[j + 1].word) {
             count++;
-            word_meta.push({ docN: list[j].docNum, index: list[j].index });
-
           }
           else {
-            DF_meta[j].word = list[j].word;
-            DF_meta[j].freqD = count;
-            DF_meta[j].doc = word_meta;
+
+            DF_meta.push({ word: null, freqD: null, doc: null });
+            DF_meta[distinct].word = list[j].word;
+            DF_meta[distinct].freqD = count;
+            DF_meta[distinct].doc = word_meta;
             count = 1;
+
+            distinct++;
             word_meta = [];
           }
         } catch (err) {
@@ -110,20 +110,15 @@ export class BarChartComponent implements OnInit {
 
     var TF_arr: { word: string, TF: number }[][]
       = new Array<{ word: string, TF: number }[]>();
-
     var TF_meta: { word: string, docNum: number, index: number }[]
       = new Array<{ word: string, docNum: number, index: number }>();
-
     var DF_arr: { word: string, freqD: number, doc: { docN: number, index: number }[] }[] = [];
-
-
-
-
-    var TF_IDF_arr: { word: string, TF_IDF: number }[][] = [];
-    
+    var TF_IDF: { word: string, TF_IDF: number }[]
+      = [{ word: null, TF_IDF: null }];
+    var TF_IDF_arr: { word: string, TF_IDF: number }[][]
+      = [TF_IDF];
 
     var listDF = [];
-
     var wordArr = [];
 
     var targetColumn = d3.csvParse(data, function (d) {
@@ -143,46 +138,202 @@ export class BarChartComponent implements OnInit {
 
       // console.log(TF_arr);
       var DocWordLen = TF_arr[i].length;
+
+      TF_IDF = [{ word: null, TF_IDF: null }];
       for (var k = 0; k < DocWordLen; k++) {
 
         var word = (TF_arr[i][k].word);
         var idx = k;
         var docN = i;
         TF_meta.push({ word: word, docNum: docN, index: idx });
+
+        TF_IDF[k] = { word: word, TF_IDF: null };
       }
+
+      TF_IDF_arr[i] = TF_IDF;
 
     }//for
 
+    // console.log(TF_IDF_arr);
     DF_arr = this.DFify(TF_meta, DF_arr);
-    console.log(DF_arr)
 
-
+    // console.log(DF_arr);
 
 
     for (i = 0; i < DF_arr.length; i++) {
+
       var IDF = (len / DF_arr[i].freqD);
-     
+      var IDF_log = Math.log(IDF) / Math.log(10);
+      // console.log(IDF_log);
+
+      for (var j = 0; j < DF_arr[i].doc.length; j++) {
+
+        var numI = DF_arr[i].doc[j].index;
+        var numD = DF_arr[i].doc[j].docN;
+
+        /**
+         * ojbect을 element을 가진 array
+         * 다른 함수로 paramenter으로 넣었다. 
+         * 그 함수 안에서는 element 의 이름이 다르게 되어있음.
+         * 그래도 return 혹은 그냥 call by ref으로 저장.
+         * 그러면 어떻게?
+         * 
+         * TF.freq였다가 TF.TF로 변경
+         */
+
+
+
+        var tfVal = TF_arr[numD][numI].TF;
+        var tf_idf_val = tfVal * IDF_log;
+
+        TF_IDF_arr[numD][numI].TF_IDF = tf_idf_val;
+      }
+
     }
 
-    return data;
+    for (var v = 0; v < TF_IDF_arr.length; v++) {
+      TF_IDF_arr[v].sort((a, b) => b.TF_IDF - a.TF_IDF);
+    }
+    // console.log(TF_IDF_arr);
+
+
+    return TF_IDF_arr;
   }//render
 
+
+
+  //visualization
   private draw(data) {
-    var svg = d3.select("svg")
-      .attr('width', 500)
-      .attr('height', 500);
-    var width = 500;
-    var height = 500;
+
+    //data pull ok? 
+    console.log(data);
+    // console.log(data[0][0].word);
+    // alert(data[0][0].word);
+
+
+
+    // var svg = d3.select("svg");
+    // // .attr('width', 500)
+    // // .attr('height', 500);
+    // console.log(this.chartContainer);
+    const element = this.chartContainer.nativeElement;
+    // console.log(element);
+    const svg = d3.select(element).select('svg');
+    
+    // console.log(element.querySelector('svg').clientWidth);
+    // console.log(element.querySelector('svg').offsetHeight);
+
+    const width = +(element.querySelector('svg').clientWidth);
+    const height = +(element.querySelector('svg').clientHeight);
+    // console.log(element.offsetWidth);
+    const size = Math.max(height, width);
+
+    // const g = svg.append('g').attr('transform', `translate( ${height / 2}, ${width / 2} )`);//back tag!
 
     var color = d3.scaleOrdinal(d3.schemeAccent);
 
     var simulation = d3.forceSimulation()
       .force("link", d3.forceLink())
-      .force("charge", d3.forceManyBody())
-      .force("collide", d3.forceCollide(20))
-      .force("center", d3.forceCenter(width / 2, height / 2));
+      .force("charge", d3.forceManyBody().strength(-5))
+      .force("collide", d3.forceCollide(5))
+      .force("center", d3.forceCenter(width/2,height/2));
     // .force("locationX", d3.forceX().x(2000))
     // .force("locationY", d3.forceY().y(2000));
+    
+    // alert(data[0].word);
+
+
+    svg.append("rect")
+      .attr("stroke","black")
+      .attr("fill","none")
+      .attr("width",width)
+      .attr("height",height);
+      
+
+    var node = svg.append("g")
+      .attr("class", "nodes")
+      .selectAll("g")
+      .data(data[0])
+      /**
+       * data
+       * [ 
+       *  [ doc1 ], 
+       *  [ doc2 ], 
+       *  [ { word: abc, TF_IDF: 10 },
+       *    { word: efg, TF_IDF: 20 }, 
+       *      ... 
+          ],
+          ... 
+         ]
+       * 
+       */
+      .enter().append("g");
+      
+    var circles = node.append("circle")
+      .attr("r", (d)=>d['TF_IDF']*5)
+      .attr("fill", function (d) { return color(d['group']); })
+      .call(d3.drag()
+        .on("start", dragstarted)
+        .on("drag", dragged)
+        .on("end", dragended));
+
+    var lables = node.append("text")
+      .text(function (d) {
+        return d['word'];
+      })
+      .attr("font-size",10)
+      .attr('x', 0)
+      .attr('y', 0);
+
+    node.append("title")
+      .text(function (d) { return d['word']; });
+
+    simulation
+      .nodes(data[0])
+      .on("tick", ticked);
+
+    // // simulation.force("link").links(dataLink);
+    // simulation.force("links", d3.forceLink().links(dataLink)
+    //   .id(function (d) { /*console.log(d['id']);*/return d['id']; }))
+    //   ;
+    // // .force("link").links(dataLink);
+    // // .force("link", d3.forceLink(dataLink));
+    // // simulation.force("link").links(graph.links);
+
+    function ticked() {
+      // link
+      //   .attr("x1", function (d) { return d['source.x']; })
+      //   .attr("y1", function (d) { return d['source.y']; })
+      //   .attr("x2", function (d) { return d['target.x']; })
+      //   .attr("y2", function (d) { return d['target.y']; })
+        // .attr("stroke","black")
+        // .attr("stroke-width", function (d) { /*console.log(d['value']);*/return Math.sqrt(d['value']); });
+        ;
+
+      node
+        .attr("transform", function (d) {
+          return "translate(" + d['x'] + "," + d['y'] + ")";
+        })
+    }
+    // });
+
+    function dragstarted(d) {
+      if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+      d.fx = d.x;
+      d.fy = d.y;
+    }
+
+    function dragged(d) {
+      d.fx = d3.event.x;
+      d.fy = d3.event.y;
+    }
+
+    function dragended(d) {
+      if (!d3.event.active) simulation.alphaTarget(0);
+      d.fx = null;
+      d.fy = null;
+    }
+    // // simulation.alpha(1).restart();
 
   }
 
@@ -206,9 +357,10 @@ export class BarChartComponent implements OnInit {
     this.http.get('assets/dataset.csv', { responseType: 'text' })
       .subscribe(
         data => {
-          data = this.render(data);
-          // console.log(data);
-          // print(data);
+          const refineData = this.render(data);//data을 받을 때 형변환이 필요 없다...? 
+
+          // console.log(refineData);
+          this.draw(refineData);
         },
         error => {
           console.log(error);
