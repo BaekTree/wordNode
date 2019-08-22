@@ -1,5 +1,14 @@
 <!-- <div #chart id="chart" (window:resize)="onResize($event)"></div> -->
 <h1>Big Kinds Data</h1>
-<div #chart >
+<div #chart>
+    <select #t (change)="getMagNum(t.value)">
+        <!-- <option onchange="printout()"></option>
+        <option onchange="printout()"></option> -->
+        <option *ngFor="let journal of journalArr;let i = index"
+            [value]="i" label="{{journal}}">
+            {{journal}}
+        </option>
+    </select>
+    <!-- <span #journal>{{ magazine }}</span> -->
     <svg width="1300" height="667"></svg>
 </div>

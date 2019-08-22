@@ -1,24 +1,57 @@
-import { Component, ElementRef, AfterViewInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, OnDestroy, ChangeDetectorRef, ChangeDetectionStrategy, OnInit, OnChanges, Input, AfterViewInit, SimpleChanges, ViewChild } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import * as d3 from 'd3';
+import { values } from 'd3';
 
 
 @Component({
   selector: 'app-bar-chart',
   templateUrl: './bar-chart.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./bar-chart.component.scss']
 })
 
 
-export class BarChartComponent implements AfterViewInit {
-
+export class BarChartComponent implements AfterViewInit, OnChanges {
+  refineData;
+  magazine = 0;
+  value = 0;
+  journalArr: any[];
   @ViewChild('chart', { static: false })
   private chartContainer: ElementRef;
+  // @Input() value;
+  getMagNum(value) {
+    console.log(value);
+    this.value = value;
+    // console.log(this.magazine);
+  }
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient, private changeDetector: ChangeDetectorRef) {
+    setInterval(() => {
+      // this.createChart();
+      
+
+      if (this.magazine != this.value) {
+        this.magazine = this.value;
+        this.draw(this.refineData, this.magazine);
+      }
+      // require view to be updated
+      this.changeDetector.detectChanges();
+    }, 5000);
+  }
+
+  ngOnDestory() { }
+
   ngAfterViewInit() {
     this.createChart();
   }
+
+  ngOnChanges(changes: SimpleChanges) {
+    console.log("ng on changes run : " + changes);
+    this.createChart();
+  }
+
+
 
   onResize() {
     this.createChart();
@@ -111,6 +144,19 @@ export class BarChartComponent implements AfterViewInit {
 
 
 
+  /***ngFor data binding function
+   * 
+   * 
+   */
+
+
+
+  printout(value) {
+    console.log(value);
+  }
+
+
+
   private render(data) {
 
     var TF_arr: { word: string, TF: number }[][]
@@ -125,13 +171,44 @@ export class BarChartComponent implements AfterViewInit {
 
     var wordArr = [];
 
-    console.log(data);
+    // console.log(data);
     var journal = d3.csvParse(data, function (d) {
       return {
-        키워드: d.언론사
+        // 키워드: d.키워드,
+        언론사: d.언론사
       };
     });
-    console.log(journal);
+    // console.log(journal);
+    this.journalArr = [];
+    var lenJ = journal.length;
+    for (var i = 0; i < lenJ; i++) {
+      this.journalArr[i] = Object.values(journal[i]);//remove column head
+      // console.log(dataValues);
+    }
+
+    /***
+     * 
+     * 
+     */
+
+    // this.magazine = this.journalArr[0];
+    // TF_IDF table
+    /**
+     * [
+     *  { 언론사 : 국민일보, 
+     *    freq   : [  
+     *                { word : 조국, TF_IDF : 10 },
+     *                { word : aaa,  TF_IDF : 5  }
+     *                 
+     *             ]
+     *  },
+     *  {
+     *  
+     *  }
+     * ]
+     * 
+     * 
+     */
 
 
     //전체 문서에서 해당 column 분리
@@ -206,6 +283,10 @@ export class BarChartComponent implements AfterViewInit {
 
 
 
+
+
+
+
   /************************************************************************
    * 
    * 
@@ -214,7 +295,7 @@ export class BarChartComponent implements AfterViewInit {
    *  
    ***********************************************************************/
 
-  private draw(data) {
+  private draw(data, magazine) {
 
     //data pull ok? 
     // console.log(data);
@@ -231,7 +312,7 @@ export class BarChartComponent implements AfterViewInit {
     var simulation = d3.forceSimulation()
       .force("link", d3.forceLink())
       .force("charge", d3.forceManyBody().strength(-1))
-      .force("collide", d3.forceCollide().radius(function(d) {
+      .force("collide", d3.forceCollide().radius(function (d) {
         return d['TF_IDF'] * 5;
       }))
       .force("center", d3.forceCenter(width / 2, height / 2));
@@ -257,11 +338,16 @@ export class BarChartComponent implements AfterViewInit {
          ]
        * 
        */
+    console.log("draw in draw function")
+    console.log(this.magazine);
+    var number = +this.magazine;
+    // console.log(number);
+    console.log(data[number]);
+
     var node = svg.append("g")
       .attr("class", "nodes")
       .selectAll("g")
       .data(data[0])
-
       .enter().append("g");
 
     var circles = node.append("circle")
@@ -277,7 +363,7 @@ export class BarChartComponent implements AfterViewInit {
         return d['word'];
       })
       .attr("font-size", 10)
-      .attr('x', function(d){
+      .attr('x', function (d) {
         var w = d['word'];
         return -w.length * 5;
       })
@@ -331,18 +417,18 @@ export class BarChartComponent implements AfterViewInit {
     }//func
   }
 
-  
+
 
 
   //createChart
   private createChart(): void {
-
+    console.log("Create!");
     this.http.get('assets/dataset.csv', { responseType: 'text' })
       .subscribe(
         data => {
-          const refineData = this.render(data);//data을 받을 때 형변환이 필요 없다...? 
+          this.refineData = this.render(data);//data을 받을 때 형변환이 필요 없다...? 
           // console.log(refineData);
-          this.draw(refineData);
+          this.draw(this.refineData, this.magazine);
         },
         error => {
           console.log(error);
